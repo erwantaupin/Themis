@@ -1,16 +1,37 @@
 class PlacementLogic:
     @staticmethod
-    def calculate_score(room, x, y, furniture):
-        """Calcule le score d'un placement donné."""
-        score = 100  # Score de base
+    def calculate_score(room, x, y, furniture, placements):
+        score = 0
 
-        # Règle 1 : Meuble devant une porte
-        if room.door and x <= room.door['x'] < x + furniture.height and y <= room.door['y'] < y + furniture.width:
-            score -= 50  # Malus important pour bloquer une porte
+        # Règle : bonus si une chaise est adjacente à une table
+        if furniture.name == "Chaise":
+            for other_furniture, ox, oy in placements:
+                if other_furniture.name == "Table":
+                    if abs(x - ox) <= 1 and abs(y - oy) <= 1:
+                        score += 10
 
-        # Règle 2 : Meuble non collé à un mur
-        if x > 0 and x + furniture.height < room.height and \
-           y > 0 and y + furniture.width < room.width:
-            score -= 20  # Malus si le meuble n'est pas collé à un mur
+        # Règle : bonus si la télévision est en face d'un canapé
+        if furniture.name == "Télévision":
+            for other_furniture, ox, oy in placements:
+                if other_furniture.name == "Canapé":
+                    if x == ox and abs(y - oy) <= 3:
+                        score += 15
+
+        # Règle : malus si le meuble obstrue le chemin vers la porte
+        if room.door:
+            door_x, door_y = room.door['x'], room.door['y']
+            if x <= door_x < x + furniture.height and y <= door_y < y + furniture.width:
+                score -= 20
+
+        # Règle : malus si le lit est trop près de la cuisine
+        if furniture.name == "Lit":
+            for other_furniture, ox, oy in placements:
+                if other_furniture.name in ["Réfrigérateur", "Four", "Évier"]:
+                    if abs(x - ox) <= 2 and abs(y - oy) <= 2:
+                        score -= 10
+
+        # Règle : bonus si le bureau est près d'une fenêtre
+        if furniture.name == "Bureau" and room.has_window_near(x, y):
+            score += 5
 
         return score

@@ -1,79 +1,50 @@
-import torch
-import torch.optim as optim
-import torch.nn as nn
-import numpy as np
-from model import PlacementNet
+import random
+from placement_logic import PlacementLogic
+from evaluator import Evaluator  # Ajout de l'import
 
 class PlacementAI:
-    def __init__(self, room, wallet, grid_size=10):
+    def __init__(self, room, wallet):
         self.room = room
         self.wallet = wallet
-        self.grid_size = grid_size
-        self.model = PlacementNet(grid_size)
-        self.optimizer = optim.Adam(self.model.parameters(), lr=0.001)
-        self.criterion = nn.CrossEntropyLoss()
+        self.evaluator = Evaluator(room, wallet)  # Initialisation de l'évaluateur
 
-    def generate_training_data(self):
-        """Génère un dataset artificiel pour l'entraînement."""
-        inputs = []
-        targets = []
-
-        for furniture in self.wallet:
-            # Créer des états initiaux de la pièce
-            grid = np.zeros((self.grid_size, self.grid_size))
-            if self.room.door:
-                grid[self.room.door['x'], self.room.door['y']] = -1  # Marquer la porte
-
-            # Générer une cible aléatoire valide
-            x = np.random.randint(0, self.grid_size - furniture.height)
-            y = np.random.randint(0, self.grid_size - furniture.width)
-            grid[x:x + furniture.height, y:y + furniture.width] = 1  # Meuble placé
-
-            # Ajouter l'état et la cible
-            inputs.append(grid)
-            targets.append(x * self.grid_size + y)  # Index linéaire de la position
-
-        # Convertir en un tableau NumPy avant de transformer en tenseur
-        inputs = np.array(inputs)
-        targets = np.array(targets)
-
-        return torch.tensor(inputs, dtype=torch.float32).unsqueeze(1), torch.tensor(targets, dtype=torch.long)
-
-    def train(self, epochs=100, batch_size=10):
-        """Entraîne le réseau sur des exemples artificiels."""
-        for epoch in range(epochs):
-            inputs, targets = self.generate_training_data()
-            dataset_size = inputs.size(0)
-
-            for i in range(0, dataset_size, batch_size):
-                batch_inputs = inputs[i:i + batch_size]
-                batch_targets = targets[i:i + batch_size]
-
-                # Forward
-                self.optimizer.zero_grad()
-                outputs = self.model(batch_inputs)
-                loss = self.criterion(outputs, batch_targets)
-
-                # Backward
-                loss.backward()
-                self.optimizer.step()
-
-            print(f"Epoch {epoch + 1}/{epochs}, Loss: {loss.item()}")
-
-        # Récupérer les meilleurs placements pour chaque meuble
+    def train(self, iterations=100):
+        best_score = float('-inf')
         best_placements = []
-        for furniture in self.wallet:
-            grid = np.copy(self.room.grid)
-            best_position = self.predict(grid)
-            x, y = divmod(best_position, self.grid_size)
-            best_placements.append((furniture, x, y))
 
+        for _ in range(iterations):
+            current_score = 0
+            placements = []
+
+            self.room.reset_grid()
+
+            for furniture in self.wallet:
+                attempts = 10
+                best_position = None
+                best_local_score = float('-inf')
+
+                for _ in range(attempts):
+                    x = random.randint(0, self.room.height - furniture.height)
+                    y = random.randint(0, self.room.width - furniture.width)
+                    if self.room.can_place_furniture(x, y, furniture):
+                        local_score = PlacementLogic.calculate_score(self.room, x, y, furniture, placements)
+                        if local_score > best_local_score:
+                            best_local_score = local_score
+                            best_position = (x, y)
+
+                if best_position:
+                    x, y = best_position
+                    self.room.place_furniture(x, y, furniture)
+                    placements.append((furniture, x, y))
+                    current_score += best_local_score
+
+            # Utilisation de l'évaluation pour ajuster le score
+            evaluator_score = self.evaluator.evaluate()
+            current_score += evaluator_score
+
+            if current_score > best_score:
+                best_score = current_score
+                best_placements = placements
+
+        print(f"Meilleur score final : {best_score}")
         return best_placements
-
-    def predict(self, grid):
-        """Prédit les meilleures positions pour un meuble donné."""
-        self.model.eval()
-        with torch.no_grad():
-            grid_tensor = torch.tensor(grid, dtype=torch.float32).unsqueeze(0).unsqueeze(0)
-            outputs = self.model(grid_tensor)
-            return outputs.argmax().item()

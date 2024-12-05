@@ -6,12 +6,14 @@ class Room:
         self.name = name
         self.width = width
         self.height = height
-        self.grid = np.zeros((height, width))  # Grille vide (0 = libre)
+        self.initial_grid = np.zeros((height, width))  # Grille vide (0 = libre)
         
         # Positionner la porte
         self.door = door
         if door:
-            self.grid[door['x'], door['y']] = -1  # Marque la porte sur la grille (-1)
+            self.initial_grid[door['x'], door['y']] = -1  # Marque la porte sur la grille (-1)
+        
+        self.grid = self.initial_grid.copy()  # Grille actuelle
 
     @classmethod
     def from_json(cls, filepath):
@@ -26,9 +28,17 @@ class Room:
             return False  # Hors des limites
         return np.all(self.grid[x:x+furniture.height, y:y+furniture.width] == 0)
 
+    def can_place_furniture(self, x, y, furniture):
+        """Alias de is_position_valid pour vérifier si un meuble peut être placé."""
+        return self.is_position_valid(x, y, furniture)
+
     def place_furniture(self, x, y, furniture):
         """Place un meuble dans la pièce si possible."""
-        if self.is_position_valid(x, y, furniture):
+        if self.can_place_furniture(x, y, furniture):
             self.grid[x:x+furniture.height, y:y+furniture.width] = 1
             return True
         return False
+
+    def reset_grid(self):
+        """Réinitialise la grille à son état initial."""
+        self.grid = self.initial_grid.copy()
