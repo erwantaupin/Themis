@@ -1,0 +1,6 @@
+{
+    "name": "Living Room",
+    "width": 10,
+    "height": 10,
+    "door": { "x": 0, "y": 4 }
+}

@@ -1,0 +1,7 @@
+[
+    { "name": "Sofa", "width": 3, "height": 1, "color": "blue" },
+    { "name": "Coffee Table", "width": 2, "height": 1, "color": "brown" },
+    { "name": "TV Stand", "width": 2, "height": 1, "color": "black" },
+    { "name": "Bookshelf", "width": 1, "height": 3, "color": "green" },
+    { "name": "Chair", "width": 1, "height": 1, "color": "yellow" }
+]
