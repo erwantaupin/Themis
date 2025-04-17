@@ -18,10 +18,11 @@ class PlacementLogic:
                         score += 15
 
         # Règle : malus si le meuble obstrue le chemin vers la porte
-        if room.door:
-            door_x, door_y = room.door['x'], room.door['y']
-            if x <= door_x < x + furniture.height and y <= door_y < y + furniture.width:
-                score -= 20
+        if room.doors:
+            for door in room.doors:
+                door_x, door_y = door['x'], door['y']
+                if x <= door_x < x + furniture.height and y <= door_y < y + furniture.width:
+                    score -= 20
 
         # Règle : malus si le lit est trop près de la cuisine
         if furniture.name == "Lit":

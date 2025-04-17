@@ -1,6 +1,15 @@
 {
-    "name": "Living Room",
-    "width": 10,
-    "height": 10,
-    "door": { "x": 0, "y": 4 }
+    "name": "Salon",
+    "type": "salon",
+    "width": 25,
+    "height": 120,
+    "doors": [
+        {"x": 10, "y": 0},
+        {"x": 20, "y": 0}, 
+        {"x": 60, "y": 24}  
+    ],
+    "windows": [
+        {"x": 0, "y": 12}, 
+        {"x": 0, "y": 18}   
+    ]
 }
